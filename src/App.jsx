@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+/* ===== Constantes & Data ===== */
 const PRICES = { night: 120, day: 45, apero: 0 };
 const REVIEWS = [
   { name: "Alix B.", stars: 5, text: "Apéros mémorables, canapé validé, hôtes au top. Je reviens pour la prochaine pizza." },
@@ -12,6 +13,7 @@ const RECORDS = [
   "🧒 9 cris d’enfants pendant un call pro (record: tout le monde)",
 ];
 
+/* ===== Utils ===== */
 function startOfMonth(d){ const x=new Date(d); x.setDate(1); return x; }
 function addMonths(d,n){ const x=new Date(d); x.setMonth(x.getMonth()+n); return x; }
 function daysInMonth(d){ return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); }
@@ -20,20 +22,34 @@ function isBetween(d,a,b){ if(!a||!b) return false; const t=d.getTime(); return 
 function diffNights(a,b){ if(!a||!b) return 0; const ms=Math.ceil((b-a)/(1000*60*60*24)); return Math.max(0,ms); }
 
 export default function App(){
+  const isLeoPage = window.location.pathname === "/leo";
+
+  if (isLeoPage) return <LeoEdition />;
+  return <HomeFull />;
+}
+
+/* ===== Home (Full Deluxe) ===== */
+function HomeFull(){
   const [lang,setLang]=useState("fr");
   const [mode,setMode]=useState("night");
   const [month,setMonth]=useState(startOfMonth(new Date()));
   const [start,setStart]=useState(null);
   const [end,setEnd]=useState(null);
+  const [sent,setSent]=useState(false);
+  const [sending,setSending]=useState(false);
+
+  const [firstName,setFirstName]=useState("");
+  const [lastName,setLastName]=useState("");
+  const [humor,setHumor]=useState(5);
+  const [salary,setSalary]=useState("");
+  const [email,setEmail]=useState("");
+
   const [miami,setMiami]=useState(false);
   const [superhostClicks,setSuperhostClicks]=useState(0);
   const [easter,setEaster]=useState(false);
 
   const guest = new URLSearchParams(window.location.search).get("guest");
-
-  useEffect(()=>{
-    if(superhostClicks>=5) setEaster(true);
-  },[superhostClicks]);
+  useEffect(()=>{ if(superhostClicks>=5) setEaster(true); },[superhostClicks]);
 
   const nights = diffNights(start,end);
   const units = mode==="night" ? nights : mode==="day" ? Math.max(1,nights||1) : 1;
@@ -59,8 +75,41 @@ export default function App(){
     ? "Welcome back to Marcq, Leo 🇫🇷→🇺🇸 — la maison t’attend quand Miami te manquera 🌴🍺"
     : "Bienvenue à la Maison Pommeret — votre QG lillois entre copains 🍻";
 
+  const submit = async () => {
+    if (!firstName || !lastName || !email || !start || !end) {
+      alert(lang==="fr" ? "Merci de compléter prénom, nom, email et dates." : "Please fill first name, last name, email and dates.");
+      return;
+    }
+    setSending(true);
+    try{
+      const res = await fetch("https://formspree.io/f/xreajboo",{
+        method:"POST",
+        headers:{ "Accept":"application/json","Content-Type":"application/json" },
+        body: JSON.stringify({ option:mode, du:start?.toLocaleDateString(), au:end?.toLocaleDateString(), units, total, firstName, lastName, humor, salary, email })
+      });
+      if(res.ok) setSent(true);
+      else alert("Échec de l’envoi 😬");
+    }catch(e){ alert("Erreur réseau 😐"); }
+    finally{ setSending(false); }
+  };
+
+  if (sent) {
+    return (
+      <div style={{ fontFamily:"system-ui", background:"#f4f6fb", minHeight:"100vh", padding:24 }}>
+        <div style={{ maxWidth:420, margin:"0 auto", textAlign:"center" }}>
+          <div style={{ background:"#fff", borderRadius:16, padding:24, boxShadow:"0 6px 20px rgba(0,0,0,0.06)" }}>
+            <div style={{ fontSize:48 }}>✅</div>
+            <h2>Demande envoyée !</h2>
+            <p>On revient vers toi très vite pour confirmer la dispo.</p>
+            <button onClick={()=>setSent(false)} style={btnPrimary}>Faire une autre demande</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ fontFamily:"system-ui", background: miami ? "#fff3e6" : "#f4f6fb", minHeight:"100vh", paddingBottom:60 }}>
+    <div style={{ fontFamily:"system-ui", background: miami ? "#fff3e6" : "#f4f6fb", minHeight:"100vh", paddingBottom:90 }}>
       <div style={{ maxWidth:420, margin:"0 auto", padding:16 }}>
         {/* Hero */}
         <div style={{ borderRadius:16, padding:16, background:"#111", color:"#fff", marginBottom:12 }}>
@@ -90,41 +139,128 @@ export default function App(){
           </div>
         )}
 
-        {/* Records */}
-        <div style={{ background:"#fff", padding:12, borderRadius:12, marginBottom:12 }}>
-          <strong>🏆 Records de la Maison Pommeret</strong>
-          {RECORDS.map((r,i)=>(
-            <div key={i} style={{ fontSize:14, marginTop:6 }}>{r}</div>
+        {/* Photos */}
+        <div style={{ display:"flex", gap:8, overflowX:"auto", margin:"12px 0" }}>
+          <img src="/images/cuisine.jpg" style={photo} />
+          <img src="/images/salle-a-manger.jpg" style={photo} />
+          <img src="/images/salon.jpg" style={photo} />
+        </div>
+
+        {/* Avis */}
+        <div style={card}>
+          <strong>Avis des voyageurs</strong>
+          {REVIEWS.map((r,i)=>(
+            <div key={i} style={{ marginTop:8, borderTop:i?"1px solid #eee":"none", paddingTop:i?8:0 }}>
+              <div style={{ fontWeight:600 }}>{r.name} · {"★".repeat(r.stars)}</div>
+              <div style={{ fontSize:14, color:"#555" }}>{r.text}</div>
+            </div>
           ))}
         </div>
 
+        {/* Records */}
+        <div style={card}>
+          <strong>🏆 Records de la Maison Pommeret</strong>
+          {RECORDS.map((r,i)=><div key={i} style={{ fontSize:14, marginTop:6 }}>{r}</div>)}
+        </div>
+
+        {/* Choix formule */}
+        <div style={card}>
+          <strong>Choisissez votre formule</strong>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:8 }}>
+            <button onClick={()=>setMode("night")} style={btn(mode==="night")}>🌙 Nuitée — {PRICES.night}€/nuit</button>
+            <button onClick={()=>setMode("day")} style={btn(mode==="day")}>💻 Journée — {PRICES.day}€/jour</button>
+            <button onClick={()=>setMode("apero")} style={btn(mode==="apero")}>🍻 Apéro</button>
+          </div>
+        </div>
+
         {/* Calendrier */}
-        <div style={{ background:"#fff", padding:12, borderRadius:12 }}>
-          <div style={{ display:"flex", justifyContent:"space-between" }}>
+        <div style={card}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <button onClick={()=>setMonth(addMonths(month,-1))}>◀</button>
             <strong>{month.toLocaleDateString("fr",{ month:"long", year:"numeric" })}</strong>
             <button onClick={()=>setMonth(addMonths(month,1))}>▶</button>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:6, marginTop:8 }}>
             {grid.map((d,i)=>(
-              <button key={i} onClick={()=>d&&onPick(d)} style={{
-                height:36, borderRadius:10, border:"none",
-                background: !d ? "transparent" :
-                  sameDay(d,start)||sameDay(d,end) ? "#111" :
-                  isBetween(d,start,end) ? "#ddd" : "#f2f2f2",
-                color: sameDay(d,start)||sameDay(d,end) ? "#fff" : "#111"
-              }}>
+              <button key={i} onClick={()=>d&&onPick(d)} style={dayBtn(d,start,end)}>
                 {d?d.getDate():""}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Total */}
-        <div style={{ marginTop:12, background:"#fff", padding:12, borderRadius:12 }}>
-          Total estimé : <strong>{total} €</strong>
+        {/* Formulaire */}
+        <div style={card}>
+          <strong>Informations du visiteur</strong>
+          <input placeholder="Prénom" value={firstName} onChange={e=>setFirstName(e.target.value)} style={input} />
+          <input placeholder="Nom" value={lastName} onChange={e=>setLastName(e.target.value)} style={input} />
+          <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={input} />
+          <label style={{ fontSize:12 }}>Niveau d’humour: {humor}/10</label>
+          <input type="range" min="0" max="10" value={humor} onChange={e=>setHumor(+e.target.value)} style={{ width:"100%" }} />
+          <input placeholder="Salaire (pour rigoler)" value={salary} onChange={e=>setSalary(e.target.value)} style={input} />
         </div>
+      </div>
+
+      {/* Sticky recap */}
+      <div style={sticky}>
+        <div>
+          <div style={{ fontSize:12, color:"#666" }}>Total estimé</div>
+          <strong>{total} €</strong>
+        </div>
+        <button onClick={submit} disabled={sending} style={{ ...btnPrimary, opacity: sending ? .7 : 1 }}>
+          {sending ? "Envoi…" : "Envoyer la demande"}
+        </button>
       </div>
     </div>
   );
 }
+
+/* ===== Page secrète Léo ===== */
+function LeoEdition(){
+  const score = 60 + Math.floor(Math.random()*30);
+  const contract = `CONTRAT OFFICIEL DE SÉJOUR – MAISON POMMERET
+
+Le visiteur s’engage à :
+- Ne jamais finir la dernière bière sans prévenir.
+- Accepter toute raclette improvisée.
+- Tolérer un niveau sonore enfantin imprévisible.
+- Raconter au moins une anecdote de Miami.
+
+Avantages inclus :
+- Canapé premium
+- Café à volonté
+- Apéros garantis
+
+Signé : Brune & Jojo`;
+
+  return (
+    <div style={{ fontFamily:"system-ui", background:"#0b1220", color:"#fff", minHeight:"100vh", padding:24 }}>
+      <div style={{ maxWidth:520, margin:"0 auto" }}>
+        <h1>🇫🇷 Welcome back to your French HQ, Leo</h1>
+        <p>Mary & the boys are always welcome. The house misses you.</p>
+
+        <div style={{ background:"#111827", borderRadius:16, padding:16, margin:"16px 0" }}>
+          <h3>✈️ Jet lag estimator (Miami → Marcq)</h3>
+          <p>Fatigue level: <strong>{score}%</strong></p>
+          <p>Recommended treatment: nap + bière + raclette 🛌🍺🧀</p>
+        </div>
+
+        <div style={{ background:"#111827", borderRadius:16, padding:16, marginBottom:16 }}>
+          <h3>📄 Ton contrat officiel</h3>
+          <pre style={{ whiteSpace:"pre-wrap", fontSize:12 }}>{contract}</pre>
+        </div>
+
+        <a href="/" style={{ color:"#60a5fa" }}>← Retour à la maison</a>
+      </div>
+    </div>
+  );
+}
+
+/* ===== Styles ===== */
+const card = { background:"#fff", borderRadius:16, padding:14, marginBottom:12, boxShadow:"0 6px 20px rgba(0,0,0,0.06)" };
+const photo = { width:120, height:90, borderRadius:12, objectFit:"cover", flexShrink:0 };
+const btn = (active)=>({ padding:"8px 12px", borderRadius:999, border:"none", background: active ? "#111" : "#eee", color: active ? "#fff" : "#111", cursor:"pointer" });
+const btnPrimary = { padding:"12px 14px", borderRadius:12, border:"none", background:"#111", color:"#fff", fontSize:16, cursor:"pointer" };
+const input = { width:"100%", padding:10, borderRadius:10, border:"1px solid #ddd", marginTop:8 };
+const sticky = { position:"fixed", bottom:0, left:0, right:0, background:"#fff", borderTop:"1px solid #eee", padding:12, display:"flex", justifyContent:"space-between", alignItems:"center" };
+const dayBtn = (d,start,end)=>({ height:36, borderRadius:10, border:"none", background: !d ? "transparent" : sameDay(d,start)||sameDay(d,end) ? "#111" : isBetween(d,start,end) ? "#ddd" : "#f2f2f2", color: sameDay(d,start)||sameDay(d,end) ? "#fff" : "#111", cursor: d ? "pointer" : "default" });
