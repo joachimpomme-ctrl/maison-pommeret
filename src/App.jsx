@@ -42,16 +42,19 @@ export default function App() {
   const [start, setStart] = useState(null);
   const [end, setEnd] = useState(null);
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
 
+  // Formulaire
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [humor, setHumor] = useState(5);
   const [salary, setSalary] = useState("");
+  const [email, setEmail] = useState("");
 
   const t = {
     fr: {
       title: "Maison à Marcq-en-Barœul",
-      subtitle: "Mini Airbnb entre copains — V4.3",
+      subtitle: "Mini Airbnb entre copains — V4.4",
       rating: "4,9 ★★★★★ · 600+ avis",
       superhost: "Superhost 🏅",
       reviews: "Avis des voyageurs",
@@ -75,12 +78,13 @@ export default function App() {
       lname: "Nom",
       humor: "Niveau d’humour",
       salary: "Salaire (pour rigoler)",
+      email: "Email",
       sentTitle: "Demande envoyée !",
       sentMsg: "On revient vers toi très vite pour confirmer la dispo."
     },
     en: {
       title: "House in Marcq-en-Barœul",
-      subtitle: "Mini Airbnb for friends — V4.3",
+      subtitle: "Mini Airbnb for friends — V4.4",
       rating: "4.9 ★★★★★ · 600+ reviews",
       superhost: "Superhost 🏅",
       reviews: "Guest reviews",
@@ -104,6 +108,7 @@ export default function App() {
       lname: "Last name",
       humor: "Humor level",
       salary: "Salary (just for fun)",
+      email: "Email",
       sentTitle: "Request sent!",
       sentMsg: "We’ll get back to you shortly to confirm availability."
     }
@@ -129,13 +134,37 @@ export default function App() {
     else setEnd(d);
   };
 
-  const submit = () => {
-    const subject = encodeURIComponent("Demande réservation – Maison Pommeret");
-    const body = encodeURIComponent(
-      `Option: ${mode}\nDu: ${start?.toLocaleDateString()}\nAu: ${end?.toLocaleDateString()}\nUnités: ${units}\nTotal estimé: ${total} €\n\nPrénom: ${firstName}\nNom: ${lastName}\nNiveau d'humour: ${humor}/10\nSalaire (pour rigoler): ${salary}`
-    );
-    window.location.href = `mailto:famille@pommeret.eu?subject=${subject}&body=${body}`;
-    setSent(true);
+  const submit = async () => {
+    if (!firstName || !lastName || !email || !start || !end) {
+      alert(lang === "fr" ? "Merci de compléter prénom, nom, email et dates." : "Please fill first name, last name, email and dates.");
+      return;
+    }
+    setSending(true);
+    const payload = {
+      option: mode,
+      du: start?.toLocaleDateString(),
+      au: end?.toLocaleDateString(),
+      unites: units,
+      total,
+      firstName,
+      lastName,
+      humor,
+      salary,
+      email,
+    };
+    try {
+      const res = await fetch("https://formspree.io/f/xreajboo", {
+        method: "POST",
+        headers: { "Accept": "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) setSent(true);
+      else alert("Échec de l’envoi 😬");
+    } catch (e) {
+      alert("Erreur réseau 😐");
+    } finally {
+      setSending(false);
+    }
   };
 
   if (sent) {
@@ -228,6 +257,7 @@ export default function App() {
           <strong>{t.form}</strong>
           <input placeholder={t.fname} value={firstName} onChange={(e) => setFirstName(e.target.value)} style={input} />
           <input placeholder={t.lname} value={lastName} onChange={(e) => setLastName(e.target.value)} style={input} />
+          <input placeholder={t.email} value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
           <label style={{ fontSize: 12 }}>{t.humor}: {humor}/10</label>
           <input type="range" min="0" max="10" value={humor} onChange={(e) => setHumor(+e.target.value)} style={{ width: "100%" }} />
           <input placeholder={t.salary} value={salary} onChange={(e) => setSalary(e.target.value)} style={input} />
@@ -240,7 +270,9 @@ export default function App() {
           <div style={{ fontSize: 12, color: "#666" }}>{t.total}</div>
           <strong>{total} €</strong>
         </div>
-        <button onClick={submit} style={btnPrimary}>{t.reserve}</button>
+        <button onClick={submit} disabled={sending} style={{ ...btnPrimary, opacity: sending ? 0.7 : 1 }}>
+          {sending ? "Envoi…" : t.reserve}
+        </button>
       </div>
     </div>
   );
