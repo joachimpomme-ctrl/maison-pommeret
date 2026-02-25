@@ -29,18 +29,32 @@ function diffNights(a, b) {
   return Math.max(0, ms);
 }
 
+const REVIEWS = [
+  { name: "Alix B.", stars: 5, text: "Apéros mémorables, canapé validé, hôtes au top. Je reviens pour la prochaine pizza." },
+  { name: "Greg B.", stars: 5, text: "Très bon Wi-Fi pour bosser… puis très bonne bière pour décompresser. Combo parfait." },
+  { name: "Mary B.", stars: 5, text: "Maison chaleureuse, ambiance cool, on se sent comme à la maison. Je recommande pour l’apéro 😄" },
+];
+
 export default function App() {
   const [lang, setLang] = useState("fr");
   const [mode, setMode] = useState("night");
   const [month, setMonth] = useState(startOfMonth(new Date()));
   const [start, setStart] = useState(null);
   const [end, setEnd] = useState(null);
-  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [humor, setHumor] = useState(5);
+  const [salary, setSalary] = useState("");
 
   const t = {
     fr: {
       title: "Maison à Marcq-en-Barœul",
-      subtitle: "Mini Airbnb entre copains — V4",
+      subtitle: "Mini Airbnb entre copains — V4.3",
+      rating: "4,9 ★★★★★ · 600+ avis",
+      superhost: "Superhost 🏅",
+      reviews: "Avis des voyageurs",
       desc:
         "Maison lumineuse et chaleureuse pour une nuit, une journée de télétravail ou un apéro convivial. Wi-Fi rapide, grande table, salon cosy, café garanti.",
       hosts:
@@ -56,10 +70,20 @@ export default function App() {
       total: "Total estimé",
       monthPrev: "◀",
       monthNext: "▶",
+      form: "Informations du visiteur",
+      fname: "Prénom",
+      lname: "Nom",
+      humor: "Niveau d’humour",
+      salary: "Salaire (pour rigoler)",
+      sentTitle: "Demande envoyée !",
+      sentMsg: "On revient vers toi très vite pour confirmer la dispo."
     },
     en: {
       title: "House in Marcq-en-Barœul",
-      subtitle: "Mini Airbnb for friends — V4",
+      subtitle: "Mini Airbnb for friends — V4.3",
+      rating: "4.9 ★★★★★ · 600+ reviews",
+      superhost: "Superhost 🏅",
+      reviews: "Guest reviews",
       desc:
         "Bright and cosy house for an overnight stay, a remote-work day or a friendly afterwork. Fast Wi-Fi, large table, cosy living room, coffee guaranteed.",
       hosts:
@@ -75,6 +99,13 @@ export default function App() {
       total: "Estimated total",
       monthPrev: "◀",
       monthNext: "▶",
+      form: "Guest info",
+      fname: "First name",
+      lname: "Last name",
+      humor: "Humor level",
+      salary: "Salary (just for fun)",
+      sentTitle: "Request sent!",
+      sentMsg: "We’ll get back to you shortly to confirm availability."
     }
   }[lang];
 
@@ -84,35 +115,43 @@ export default function App() {
 
   const grid = useMemo(() => {
     const first = startOfMonth(month);
-    const offset = (first.getDay() + 6) % 7; // Mon=0
+    const offset = (first.getDay() + 6) % 7;
     const dim = daysInMonth(month);
     const cells = [];
     for (let i = 0; i < offset; i++) cells.push(null);
-    for (let d = 1; d <= dim; d++) {
-      const date = new Date(month.getFullYear(), month.getMonth(), d);
-      cells.push(date);
-    }
+    for (let d = 1; d <= dim; d++) cells.push(new Date(month.getFullYear(), month.getMonth(), d));
     return cells;
   }, [month]);
 
   const onPick = (d) => {
-    if (!start || (start && end)) {
-      setStart(d);
-      setEnd(null);
-    } else if (d < start) {
-      setStart(d);
-    } else {
-      setEnd(d);
-    }
+    if (!start || (start && end)) { setStart(d); setEnd(null); }
+    else if (d < start) setStart(d);
+    else setEnd(d);
   };
 
   const submit = () => {
     const subject = encodeURIComponent("Demande réservation – Maison Pommeret");
     const body = encodeURIComponent(
-      `Option: ${mode}\nDu: ${start?.toLocaleDateString()}\nAu: ${end?.toLocaleDateString()}\nUnités: ${units}\nTotal estimé: ${total} €\nEmail: ${email}`
+      `Option: ${mode}\nDu: ${start?.toLocaleDateString()}\nAu: ${end?.toLocaleDateString()}\nUnités: ${units}\nTotal estimé: ${total} €\n\nPrénom: ${firstName}\nNom: ${lastName}\nNiveau d'humour: ${humor}/10\nSalaire (pour rigoler): ${salary}`
     );
     window.location.href = `mailto:famille@pommeret.eu?subject=${subject}&body=${body}`;
+    setSent(true);
   };
+
+  if (sent) {
+    return (
+      <div style={{ fontFamily: "system-ui", background: "#f4f6fb", minHeight: "100vh", padding: 24 }}>
+        <div style={{ maxWidth: 420, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 6px 20px rgba(0,0,0,0.06)" }}>
+            <div style={{ fontSize: 48 }}>✅</div>
+            <h2>{t.sentTitle}</h2>
+            <p>{t.sentMsg}</p>
+            <button onClick={() => setSent(false)} style={btnPrimary}>Faire une autre demande</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ fontFamily: "system-ui", background: "#f4f6fb", minHeight: "100vh", paddingBottom: 90 }}>
@@ -121,7 +160,11 @@ export default function App() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h1 style={{ margin: 0 }}>{t.title}</h1>
-            <p style={{ marginTop: 4, color: "#666" }}>{t.subtitle}</p>
+            <p style={{ margin: "4px 0", color: "#666" }}>{t.subtitle}</p>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ fontSize: 12 }}>⭐ {t.rating}</span>
+              <span style={{ fontSize: 12, background: "#ff385c", color: "#fff", padding: "2px 8px", borderRadius: 999 }}>{t.superhost}</span>
+            </div>
           </div>
           <div>
             <button onClick={() => setLang("fr")} style={btnSmall(lang === "fr")}>FR</button>
@@ -140,6 +183,17 @@ export default function App() {
         <Card><strong>Vos hôtes</strong><p>{t.hosts}</p></Card>
         <Card><strong>Accès</strong><p>{t.access}</p></Card>
 
+        {/* Avis */}
+        <Card>
+          <strong>{t.reviews}</strong>
+          {REVIEWS.map((r, i) => (
+            <div key={i} style={{ marginTop: 10, borderTop: i ? "1px solid #eee" : "none", paddingTop: i ? 10 : 0 }}>
+              <div style={{ fontWeight: 600 }}>{r.name} · {"★".repeat(r.stars)}</div>
+              <div style={{ fontSize: 14, color: "#555" }}>{r.text}</div>
+            </div>
+          ))}
+        </Card>
+
         {/* Choix formule */}
         <Card>
           <strong>{t.choose}</strong>
@@ -157,27 +211,26 @@ export default function App() {
             <strong>{month.toLocaleDateString(lang, { month: "long", year: "numeric" })}</strong>
             <button onClick={() => setMonth(addMonths(month, 1))}>{t.monthNext}</button>
           </div>
-
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginTop: 8 }}>
             {["L", "M", "M", "J", "V", "S", "D"].map((d) => (
               <div key={d} style={{ textAlign: "center", fontSize: 12, color: "#888" }}>{d}</div>
             ))}
             {grid.map((d, i) => (
-              <button
-                key={i}
-                disabled={!d}
-                onClick={() => d && onPick(d)}
-                style={dayBtn(d, start, end)}
-              >
+              <button key={i} disabled={!d} onClick={() => d && onPick(d)} style={dayBtn(d, start, end)}>
                 {d ? d.getDate() : ""}
               </button>
             ))}
           </div>
         </Card>
 
-        {/* Contact */}
+        {/* Formulaire */}
         <Card>
-          <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
+          <strong>{t.form}</strong>
+          <input placeholder={t.fname} value={firstName} onChange={(e) => setFirstName(e.target.value)} style={input} />
+          <input placeholder={t.lname} value={lastName} onChange={(e) => setLastName(e.target.value)} style={input} />
+          <label style={{ fontSize: 12 }}>{t.humor}: {humor}/10</label>
+          <input type="range" min="0" max="10" value={humor} onChange={(e) => setHumor(+e.target.value)} style={{ width: "100%" }} />
+          <input placeholder={t.salary} value={salary} onChange={(e) => setSalary(e.target.value)} style={input} />
         </Card>
       </div>
 
@@ -231,7 +284,8 @@ const input = {
   width: "100%",
   padding: 10,
   borderRadius: 10,
-  border: "1px solid #ddd"
+  border: "1px solid #ddd",
+  marginTop: 8
 };
 const sticky = {
   position: "fixed",
