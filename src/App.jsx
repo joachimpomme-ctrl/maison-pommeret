@@ -1,48 +1,78 @@
 import { useState } from "react";
 
+const PRICES = {
+  night: 120,
+  day: 45,
+  apero: 0,
+};
+
 export default function App() {
   const [lang, setLang] = useState("fr");
   const [mode, setMode] = useState("night");
-  const [date, setDate] = useState("");
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
   const [email, setEmail] = useState("");
 
   const t = {
     fr: {
       title: "Maison à Marcq-en-Barœul",
-      subtitle: "Mini Airbnb entre copains",
+      subtitle: "Mini Airbnb entre copains (version pro dispo)",
       desc:
-        "Maison lumineuse et chaleureuse, parfaite pour une nuit de passage, une journée de télétravail inspirée ou un apéro qui dérape gentiment. Wi-Fi rapide, grande table, salon cosy, café garanti.",
+        "Maison lumineuse et chaleureuse, parfaite pour une nuit de passage, une journée de télétravail inspirée ou un apéro convivial. Wi-Fi rapide, grande table, salon cosy, café garanti.",
       hosts:
-        "Brune & Jojo vous accueillent, accompagnés de leurs trois domestiques : Baptiste, Claire et Paul (experts en désordre créatif).",
+        "Brune & Jojo vous accueillent, accompagnés de Baptiste, Claire et Paul (experts en désordre créatif).",
       access:
         "📍 Marcq-en-Barœul · 🚗 Parking facile · 📶 Wi-Fi rapide · 🚆 15–20 min de Lille",
-      night: "🌙 Nuitée (2 bières + apéro)",
-      day: "💻 Télétravail (croissants + pizza)",
-      apero: "🍻 Apéro (ramène un truc)",
+      night: "🌙 Nuitée",
+      day: "💻 Télétravail (journée)",
+      apero: "🍻 Apéro",
+      choose: "Choisissez votre formule",
+      checkIn: "Arrivée",
+      checkOut: "Départ",
+      total: "Total estimé",
+      nights: "nuits",
+      days: "jours",
       send: "Envoyer la demande",
-      choose: "Choisis ton option"
+      price: "Tarif"
     },
     en: {
       title: "House in Marcq-en-Barœul",
-      subtitle: "Mini Airbnb for friends",
+      subtitle: "Mini Airbnb for friends (pro pricing available)",
       desc:
         "Bright and cosy house for a short stay, a productive remote-work day or a friendly afterwork. Fast Wi-Fi, large table, cosy living room, coffee guaranteed.",
       hosts:
-        "Hosted by Brune & Jojo, with their three assistants: Baptiste, Claire and Paul (creative mess experts).",
+        "Hosted by Brune & Jojo, with Baptiste, Claire and Paul (creative mess experts).",
       access:
         "📍 Marcq-en-Barœul · 🚗 Easy parking · 📶 Fast Wi-Fi · 🚆 15–20 min from Lille",
-      night: "🌙 Overnight (2 beers + snacks)",
-      day: "💻 Remote work (croissants + pizza)",
-      apero: "🍻 Afterwork (bring drinks)",
+      night: "🌙 Overnight",
+      day: "💻 Remote work (day)",
+      apero: "🍻 Afterwork",
+      choose: "Choose your option",
+      checkIn: "Check-in",
+      checkOut: "Check-out",
+      total: "Estimated total",
+      nights: "nights",
+      days: "days",
       send: "Send request",
-      choose: "Choose your option"
+      price: "Price"
     }
   }[lang];
 
+  const diffDays = () => {
+    if (!checkIn || !checkOut) return 0;
+    const d1 = new Date(checkIn);
+    const d2 = new Date(checkOut);
+    const diff = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  };
+
+  const units = mode === "night" ? diffDays() : mode === "day" ? diffDays() || 1 : 1;
+  const total = PRICES[mode] * units;
+
   const submit = () => {
-    const subject = encodeURIComponent("Demande maison Pommeret");
+    const subject = encodeURIComponent("Demande réservation – Maison Pommeret");
     const body = encodeURIComponent(
-      `Option: ${mode}\nDate: ${date}\nEmail: ${email}`
+      `Option: ${mode}\nArrivée: ${checkIn}\nDépart: ${checkOut}\nUnités: ${units}\nTotal estimé: ${total} €\nEmail: ${email}`
     );
     window.location.href = `mailto:famille@pommeret.eu?subject=${subject}&body=${body}`;
   };
@@ -62,7 +92,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Galerie photos */}
+        {/* Photos */}
         <div style={{ display: "flex", gap: 8, overflowX: "auto", margin: "16px 0" }}>
           <img src="/images/cuisine.jpg" style={photo} />
           <img src="/images/salle-a-manger.jpg" style={photo} />
@@ -70,45 +100,34 @@ export default function App() {
         </div>
 
         {/* Description */}
+        <Card><p>{t.desc}</p></Card>
+        <Card><strong>Vos hôtes</strong><p>{t.hosts}</p></Card>
+        <Card><strong>Accès</strong><p>{t.access}</p></Card>
+
+        {/* Choix formule */}
         <Card>
-          <p>{t.desc}</p>
+          <strong>{t.choose}</strong>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <button onClick={() => setMode("night")} style={btn(mode === "night")}>{t.night} – {PRICES.night}€/{t.nights}</button>
+            <button onClick={() => setMode("day")} style={btn(mode === "day")}>{t.day} – {PRICES.day}€/{t.days}</button>
+            <button onClick={() => setMode("apero")} style={btn(mode === "apero")}>{t.apero}</button>
+          </div>
         </Card>
 
-        {/* Hôtes */}
+        {/* Calendrier */}
         <Card>
-          <strong>Vos hôtes</strong>
-          <p style={{ marginTop: 6 }}>{t.hosts}</p>
-        </Card>
-
-        {/* Accès */}
-        <Card>
-          <strong>Accès pratiques</strong>
-          <p style={{ marginTop: 6 }}>{t.access}</p>
-        </Card>
-
-        {/* Carte */}
-        <Card>
-          <strong>Localisation</strong>
-          <iframe
-            src="https://www.google.com/maps?q=Marcq-en-Baroeul&output=embed"
-            width="100%"
-            height="160"
-            style={{ border: 0, borderRadius: 12, marginTop: 8 }}
-            loading="lazy"
-          />
+          <label>{t.checkIn}</label>
+          <input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} style={input} />
+          <label style={{ marginTop: 6 }}>{t.checkOut}</label>
+          <input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} style={input} />
+          <p style={{ marginTop: 8 }}>
+            {units} {mode === "night" ? t.nights : t.days} × {PRICES[mode]} € = <strong>{total} €</strong>
+          </p>
         </Card>
 
         {/* Réservation */}
         <Card>
-          <strong>{t.choose}</strong>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-            <button onClick={() => setMode("night")} style={btn(mode === "night")}>{t.night}</button>
-            <button onClick={() => setMode("day")} style={btn(mode === "day")}>{t.day}</button>
-            <button onClick={() => setMode("apero")} style={btn(mode === "apero")}>{t.apero}</button>
-          </div>
-
-          <input type="date" onChange={(e) => setDate(e.target.value)} style={input} />
-          <input placeholder="Email" onChange={(e) => setEmail(e.target.value)} style={input} />
+          <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
           <button onClick={submit} style={btnPrimary}>{t.send}</button>
         </Card>
       </div>
@@ -128,14 +147,7 @@ const Card = ({ children }) => (
   </div>
 );
 
-const photo = {
-  width: 120,
-  height: 90,
-  borderRadius: 12,
-  objectFit: "cover",
-  flexShrink: 0
-};
-
+const photo = { width: 120, height: 90, borderRadius: 12, objectFit: "cover", flexShrink: 0 };
 const btn = (active) => ({
   padding: "8px 12px",
   borderRadius: 999,
@@ -144,7 +156,6 @@ const btn = (active) => ({
   color: active ? "#fff" : "#111",
   cursor: "pointer"
 });
-
 const btnSmall = (active) => ({
   padding: "6px 10px",
   borderRadius: 999,
@@ -155,7 +166,6 @@ const btnSmall = (active) => ({
   cursor: "pointer",
   fontSize: 12
 });
-
 const btnPrimary = {
   marginTop: 10,
   padding: "10px 14px",
@@ -167,11 +177,10 @@ const btnPrimary = {
   fontSize: 16,
   cursor: "pointer"
 };
-
 const input = {
   width: "100%",
   padding: 10,
-  marginTop: 8,
+  marginTop: 6,
   borderRadius: 10,
   border: "1px solid #ddd"
 };
